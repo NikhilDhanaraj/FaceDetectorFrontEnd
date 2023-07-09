@@ -1,25 +1,133 @@
-import logo from './logo.svg';
+import React from 'react';
 import './App.css';
+import ParticlesBg from 'particles-bg'
+import Navigation from './Components/Navigation/Navigation';
+import Logo from './Components/Logo/Logo.js';
+import ImageLinkForm from './Components/ImageLinkForm/ImageLinkForm';
+import Rank from './Components/Rank/Rank.js';
+import FaceRecognition from './Components/FaceRecognition/FaceRecognition';
+import SignIn from './Components/SignIn/SignIn';
+import Register from './Components/Register/Register';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+const returnClarifaiRequestOptions = (imageUrl) => {
+  // Your PAT (Personal Access Token) can be found in the portal under Authentification
+  const PAT = '670053011ad04e7986d841ac58859793';
+  // Specify the correct user_id/app_id pairings
+  // Since you're making inferences outside your app's scope
+  const USER_ID = '25nike';
+  const APP_ID = 'Test_smb';
+  // Change these to whatever model and image URL you want to use
+  //const MODEL_ID = 'general-image-recognition';
+  const IMAGE_URL = imageUrl;
+
+  const raw = JSON.stringify({
+    "user_app_id": {
+      "user_id": USER_ID,
+      "app_id": APP_ID
+    },
+    "inputs": [
+      {
+        "data": {
+          "image": {
+            "url": IMAGE_URL
+          }
+        }
+      }
+    ]
+  });
+
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': 'Key ' + PAT
+    },
+    body: raw
+  };
+
+
+  return requestOptions;
+}
+
+
+
+class App extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      input: '',
+      imageUrl: '',
+      box: {},
+      route: 'signin',
+      isSignedIn: false
+    }
+  }
+
+  calculateFaceLocation = (data) => {
+      const clarifaiface = data.outputs[0].data.regions[0].region_info.bounding_box;
+      const image = document.getElementById('inputimage');
+      const width = Number(image.width);
+      const height = Number(image.height);
+      return{
+        leftCol: clarifaiface.left_col * width,
+        topRow: clarifaiface.top_row * height,
+        rightCol: width - (clarifaiface.right_col * width),
+        bottomRow: height - (clarifaiface.bottom_row * height),
+      }
+  }
+
+  displayFaceBox = (box) => {
+    this.setState({box: box});
+  }
+
+  onInputChange = (event) => {
+    this.setState({ input: event.target.value });
+  }
+
+  onButtonSubmit = () => {
+    this.setState({ imageUrl: this.state.input }, () => {
+      fetch("https://api.clarifai.com/v2/models/face-detection/outputs", returnClarifaiRequestOptions(this.state.input))
+      .then(response => response.json())
+      .then(response =>{
+        this.displayFaceBox(this.calculateFaceLocation(response));
+      })
+      .catch(error => console.log('error', error));
+    });
+    
+  }
+
+  onRouteChange = (route) => {
+    if (route === 'signout') {
+      this.setState({ isSignedIn: false })
+    } else if (route === 'home') {
+      this.setState({ isSignedIn: true })
+    }
+    this.setState({ route: route });
+  }
+
+  render() {
+    return (
+      <div className="App">
+        <ParticlesBg type="square" bg={true} />
+        <Navigation onRouteChange={this.onRouteChange} isSignedIn={this.state.isSignedIn}/>
+        {this.state.route === 'home' 
+          ? <div>
+              <Logo />
+              <Rank />
+              <ImageLinkForm
+                onInputChange={this.onInputChange}
+                onButtonSubmit={this.onButtonSubmit}/>
+              <FaceRecognition imageUrl={this.state.imageUrl} box={this.state.box} />
+            </div>
+          : (
+              this.state.route ==='signin'
+              ? <SignIn onRouteChange={this.onRouteChange} />
+              : <Register onRouteChange={this.onRouteChange} />
+            )         
+        }
+      </div>
+    );
+  }
 }
 
 export default App;

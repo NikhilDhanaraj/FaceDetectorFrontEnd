@@ -1,0 +1,10 @@
+.bounding-box{
+    position: absolute;
+    box-shadow: 0 0 0 3px #149df2 inset;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* https: //cdn.thingiverse.com/assets/ff/0f/83/65/d7/WomanFace.jpg */
