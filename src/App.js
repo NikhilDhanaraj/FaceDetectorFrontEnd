@@ -9,42 +9,6 @@ import FaceRecognition from './Components/FaceRecognition/FaceRecognition';
 import SignIn from './Components/SignIn/SignIn';
 import Register from './Components/Register/Register';
 
-const returnClarifaiRequestOptions = (pat, UID,AID,imageUrl) => {
-  
-  const PAT = pat;
-  const USER_ID = UID;
-  const APP_ID = AID;
-  const IMAGE_URL = imageUrl;
-
-  const raw = JSON.stringify({
-    "user_app_id": {
-      "user_id": USER_ID,
-      "app_id": APP_ID
-    },
-    "inputs": [
-      {
-        "data": {
-          "image": {
-            "url": IMAGE_URL
-          }
-        }
-      }
-    ]
-  });
-
-  const requestOptions = {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': 'Key ' + PAT
-    },
-    body: raw
-  };
-
-
-  return requestOptions;
-}
-
 const initialState = {
   input: '',
   imageUrl: '',
@@ -105,37 +69,32 @@ class App extends React.Component {
         method: 'post',
         headers: { 'content-Type': 'application/json' },
         body: JSON.stringify({
-          id: this.state.user.id
+          imageUrl: this.state.input
         })
       })
-        .then(response => response.json())
-        .then(data => {
-          const { PAT, USER_ID, APP_ID } = data;
-          fetch("https://api.clarifai.com/v2/models/face-detection/outputs", returnClarifaiRequestOptions(PAT, USER_ID, APP_ID,this.state.input))
-      .then(response => response.json())
-      .then(response =>{
-        if(response){
-          fetch('http://localhost:3000/image', {
-            method: 'put',
-            headers: { 'content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: this.state.user.id
-            })
-          })
-            .then(response => response.json())
-            .then(count => {
-              this.setState(Object.assign(this.state.user, {entries:count}))
-            })
-            .catch(console.log)
+          .then(response => response.json())
+          .then(response => {
+            if (response) {
+              fetch('http://localhost:3000/image', {
+                method: 'put',
+                headers: { 'content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: this.state.user.id
+                })
+              })
+                .then(response => response.json())
+                .then(count => {
+                  this.setState(Object.assign(this.state.user, { entries: count }))
+                })
+                .catch(console.log)
 
-        }
-        this.displayFaceBox(this.calculateFaceLocation(response));
-      })
-      .catch(error => console.log('error', error));
-    });
-    
-  })
-}
+            }
+            this.displayFaceBox(this.calculateFaceLocation(response));
+          })
+          .catch(error => console.log('error', error));
+      });
+
+  }
 
   onRouteChange = (route) => {
     if (route === 'signout') {
